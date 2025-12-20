@@ -21,7 +21,9 @@ variables:
   buildConfiguration: 'Release'
   packageId: 'Vcare.SipSorcery'
   isMasterBranch: $[eq(variables['Build.SourceBranch'], 'refs/heads/vcare-master')]
-  versionSuffix: $[if(eq(variables['Build.SourceBranch'], 'refs/heads/vcare-master'), '', '-beta')]
+  - name: versionSuffix
+    ${{ if ne(variables['Build.SourceBranch'], 'refs/heads/vcare-master') }}:
+      value: '-beta'
 
 steps:
 - task: UseDotNet@2
