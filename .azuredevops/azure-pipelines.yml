@@ -6,10 +6,22 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
+parameters:
+- name: publishPackage
+  displayName: 'Publish Package to Artifacts'
+  type: boolean
+  default: false
+
 strategy:
   matrix:
     net8_0:
       framework: 'net10.0'
+
+variables:
+  buildConfiguration: 'Release'
+  packageId: 'Vcare.SipSorcery'
+  isMasterBranch: $[eq(variables['Build.SourceBranch'], 'refs/heads/vcare-master')]
+  versionSuffix: $[if(eq(variables['Build.SourceBranch'], 'refs/heads/vcare-master'), '', '-beta')]
 
 steps:
 - task: UseDotNet@2
@@ -20,3 +32,41 @@ steps:
 
 - script: dotnet test test/unit/SIPSorcery.UnitTests.csproj --framework $(framework) -c Release
   displayName: 'Unit tests'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Build project'
+  inputs:
+    command: 'build'
+    projects: 'src/SIPSorcery.csproj'
+    arguments: '--configuration $(buildConfiguration)'
+
+- task: DotNetCoreCLI@2
+  displayName: 'Pack NuGet package'
+  inputs:
+    command: 'pack'
+    packagesToPack: 'src/SIPSorcery.csproj'
+    configuration: '$(buildConfiguration)'
+    packDirectory: '$(Build.ArtifactStagingDirectory)'
+    nobuild: true
+    versioningScheme: 'off'
+    buildProperties: 'PackageId=$(packageId);VersionSuffix=$(versionSuffix)'
+
+- task: NuGetCommand@2
+  displayName: 'Push to Azure Artifacts (vcare-master only)'
+  condition: eq(variables.isMasterBranch, true)
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '$(System.TeamProject)/VcarePlatform'
+    allowPackageConflicts: false
+
+- task: NuGetCommand@2
+  displayName: 'Push to Azure Artifacts (manual trigger - beta)'
+  condition: and(eq(variables.isMasterBranch, false), eq('${{ parameters.publishPackage }}', true))
+  inputs:
+    command: 'push'
+    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    nuGetFeedType: 'internal'
+    publishVstsFeed: '$(System.TeamProject)/VcarePlatform'
+    allowPackageConflicts: false
