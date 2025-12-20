@@ -53,22 +53,20 @@ steps:
     versioningScheme: 'off'
     buildProperties: 'PackageId=$(packageId);VersionSuffix=$(versionSuffix)'
 
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
   displayName: 'Push to Azure Artifacts (vcare-master only)'
   condition: eq(variables.isMasterBranch, true)
   inputs:
     command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    searchPatternPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
     nuGetFeedType: 'internal'
-    publishVstsFeed: '$(System.TeamProject)/VcarePlatform'
-    allowPackageConflicts: false
+    feedPublish: '$(System.TeamProject)/VcarePlatform'
 
-- task: NuGetCommand@2
+- task: DotNetCoreCLI@2
   displayName: 'Push to Azure Artifacts (manual trigger - beta)'
   condition: and(eq(variables.isMasterBranch, false), eq('${{ parameters.publishPackage }}', true))
   inputs:
     command: 'push'
-    packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
+    searchPatternPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg;!$(Build.ArtifactStagingDirectory)/**/*.symbols.nupkg'
     nuGetFeedType: 'internal'
-    publishVstsFeed: '$(System.TeamProject)/VcarePlatform'
-    allowPackageConflicts: false
+    feedPublish: '$(System.TeamProject)/VcarePlatform'
