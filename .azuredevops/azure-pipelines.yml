@@ -25,6 +25,7 @@ variables:
     versionSuffix : '-beta'
 
 steps:
+- task: NuGetAuthenticate@1
 - task: UseDotNet@2
   displayName: 'Install .NET 10.0.x'
   inputs:
